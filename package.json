@@ -1,0 +1,83 @@
+{
+  "name": "dsh-model-visibility",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness plugin: control which models appear in the model selector — per-model switches, provider-level batch toggles, and search. Hiding a model never touches your provider config or running sessions.",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/client.js.map",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md",
+    "README.en.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsdown",
+    "prepare": "tsc -p tsconfig.json && tsdown",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-settings": "0.0.1-rc.5",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-client-connection": "0.0.1-rc.5",
+    "@deepseek-ai/dsh-client-locale": "0.0.1-rc.5",
+    "@deepseek-ai/dsh-client-runtime": "0.0.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.0.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-settings": "0.0.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": "0.0.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.0.1-rc.5",
+    "@deepseek-ai/dsh-llm": "0.0.1-rc.5",
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "tsdown": "^0.12.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lzh3070/dsh-model-visibility.git"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "model",
+    "visibility",
+    "selector"
+  ],
+  "license": "MIT"
+}
