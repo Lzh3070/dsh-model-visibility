@@ -1,0 +1,6 @@
+# Layer applied when a profile lists this bundle: mount the host half.
+# The client half is served automatically by the client module system
+# (the package declares dsh.client and exports ./client).
+- insert:
+    - id: model-visibility
+      name: dsh-model-visibility
