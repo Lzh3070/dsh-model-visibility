@@ -15,7 +15,7 @@ Installs a dedicated **Model visibility** settings section (right after 模型 /
 
 ## Preview
 
-![Model visibility section](docs/screenshot.png)
+![Model visibility section](https://raw.githubusercontent.com/Lzh3070/dsh-model-visibility/main/docs/screenshot.png)
 
 ## Requirements
 

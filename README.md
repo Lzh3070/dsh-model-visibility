@@ -15,7 +15,7 @@
 
 ## 预览
 
-![模型可见性分区页](docs/screenshot.png)
+![模型可见性分区页](https://raw.githubusercontent.com/Lzh3070/dsh-model-visibility/main/docs/screenshot.png)
 
 ## 要求
 
