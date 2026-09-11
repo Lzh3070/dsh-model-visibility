@@ -11,7 +11,7 @@
  */
 import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { ModelVisibilityCardController, ModelVisibilityState } from './controller.ts'
 import type {} from './locales.ts'
 

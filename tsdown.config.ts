@@ -10,16 +10,19 @@ import type { UserConfig } from 'tsdown'
 
 const ID = 'dsh-model-visibility'
 
-/** Mirror of packages/client/web/src/platform.ts PLATFORM_MODULES. */
+/**
+ * Mirror of the 0.1.5 client platform seed table (the `staticModules` map the
+ * web shell hands to the module system). 0.1.5 removed `dsh-client-runtime` and
+ * the old ui-* seeds; requesting a specifier outside this table aborts the
+ * whole plugin tree.
+ */
 const CLIENT_EXTERNALS = [
   'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client',
   '@deepseek-ai/cordis',
+  '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
   '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-ui-attachment',
-  '@deepseek-ai/dsh-client-schema-form',
-  '@deepseek-ai/dsh-client-runtime/client',
+  '@deepseek-ai/dsh-client-ui-dockkit',
 ]
 
 const nodeHalf: UserConfig = {

@@ -19,7 +19,7 @@ Installs a dedicated **Model visibility** settings section (right after 模型 /
 
 ## Requirements
 
-- DeepSeek Harness ≥ 0.1.1-rc.2 (earlier versions untested)
+- **DeepSeek Harness ≥ 0.1.5-rc.1** (0.1.5 rebuilt the client module system; use 0.1.1 on older releases)
 - Node.js 22+
 
 ## Install
@@ -32,8 +32,8 @@ Restart `dsh web` to activate.
 
 ## How it works
 
-- **Host half** (`lib/index.js`): owns the `model-visibility` settings section (the hidden list) and wraps `ctx.llm.listModels` at its source, so both `session.models` (the conversation selector) and `llm.models` (the settings page) receive the filtered catalog. Catalog membership is advisory in the harness, so hiding a model a session already uses never breaks that session's dispatch.
-- **Browser half** (`lib/client.js`): registers a `settings.section` page; page state is the union of the filtered catalog and the hidden entries, each hidden entry labeled by the display-name snapshot captured when it was hidden.
+- **Host half** (`lib/index.js`): owns the `model-visibility` settings section through `ctx.settings.register` (the hidden list) and wraps `ctx.llm.listModels` at its source, so both the conversation selector and the settings page receive the filtered catalog. Catalog membership is advisory in the harness, so hiding a model a session already uses never breaks that session's dispatch.
+- **Browser half** (`lib/client.js`): registers a `settings.section` page; the catalog arrives through 0.1.5's `ctx.remote.session.modelCatalog()`, and page state is the union of the filtered catalog and the hidden entries, each hidden entry labeled by the display-name snapshot captured when it was hidden.
 
 ## Uninstall
 

@@ -7,9 +7,9 @@
  * controller exposes provider-level batch writes and a whole-list write so
  * the card can offer search + bulk actions.
  */
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { IApiClient, ModelProviderGroup, RpcRequest } from '@deepseek-ai/dsh-client-connection/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { Config, HiddenModel } from '../index.ts'
 
 /** One toggle row. */
@@ -38,6 +38,34 @@ export interface ModelVisibilityState {
   visible: number
 }
 
+/**
+ * One catalog group as the Host's `remote.session.modelCatalog()` advertises
+ * it. The 0.1.5 published Remote types mangle the catalog interface name away,
+ * so this plugin restates the wire shape it actually consumes.
+ */
+export interface CatalogModelGroup {
+  id: string
+  name: string
+  models: readonly { id: string; name: string }[]
+}
+
+/** Host model catalog outcome carried by the Remote result envelope. */
+export type ModelCatalogOutcome =
+  | { ok: true; value: { groups: readonly CatalogModelGroup[] } }
+  | { ok: false; error: { code: string; message: string } }
+
+/** The assembled Client Remote face this plugin consumes. */
+export interface ModelCatalogRemote {
+  session: {
+    modelCatalog(): Promise<ModelCatalogOutcome>
+  }
+}
+
+/** Injected catalog reader: decouples the controller from the Remote wire shape. */
+export interface ModelCatalogReader {
+  read(): Promise<readonly CatalogModelGroup[]>
+}
+
 /** The face the slot registration injects into the card component. */
 export interface ModelVisibilityFace {
   hooks: {
@@ -56,21 +84,16 @@ export interface ModelVisibilityFace {
 
 const EMPTY: ModelVisibilityState = { phase: 'loading', writable: false, groups: [], total: 0, visible: 0 }
 
-/** Mint one wire id (the brand is client-side nominal typing only). */
-function rpcRequest<P>(payload: P): RpcRequest<P> {
-  return { rpcId: crypto.randomUUID(), payload } as RpcRequest<P>
-}
-
 export class ModelVisibilityCardController {
   /** Exposed: the section contribution passes the store through its face as `hooks.snapshot`. */
   readonly store = createSnapshotStore<ModelVisibilityState>(EMPTY)
-  private catalog: ModelProviderGroup[] | undefined
+  private catalog: CatalogModelGroup[] | undefined
   private loadError: string | undefined
   private generation = 0
 
   constructor(
     private readonly scope: SettingsScope<Config>,
-    private readonly api: Pick<IApiClient, 'llm'>,
+    private readonly catalogReader: ModelCatalogReader,
   ) {
     scope.subscribe(() => { this.recompute() })
     void this.load()
@@ -92,14 +115,14 @@ export class ModelVisibilityCardController {
     const generation = ++this.generation
     if (this.catalog === undefined) this.store.update((draft) => { draft.phase = 'loading' })
     try {
-      const response = await this.api.llm.models(rpcRequest({}))
+      const groups = await this.catalogReader.read()
       if (generation !== this.generation) return
-      if (response.result.ok) {
-        this.catalog = response.result.value.groups
-        this.loadError = undefined
-      } else {
-        this.loadError = response.result.error.message
-      }
+      this.catalog = groups.map(group => ({
+        id: group.id,
+        name: group.name,
+        models: group.models.map(model => ({ id: model.id, name: model.name })),
+      }))
+      this.loadError = undefined
     } catch (error: unknown) {
       if (generation !== this.generation) return
       this.loadError = error instanceof Error ? error.message : String(error)

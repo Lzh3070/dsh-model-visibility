@@ -3,22 +3,24 @@
  *
  * Owns the `model-visibility` settings namespace (the hidden-model list) and
  * filters the model catalog at its source: `ctx.llm.listModels` is wrapped
- * so both `session.models` (the conversation selector) and `llm.models`
- * (the settings page) stop advertising hidden models. Catalog membership
+ * so every catalog read (the conversation selector's
+ * `remote.session.modelCatalog()` and the settings page) stops advertising
+ * hidden models. Catalog membership
  * is advisory in the harness, so hiding a model a session already uses
  * never breaks that session's dispatch.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 // Type-only: resolves `ctx.llm` (LlmRuntime) on Context.
 import type {} from '@deepseek-ai/dsh-llm'
+// Type-only: resolves `ctx.settings` (SettingsProvider) on Context.
+import type {} from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
+import { MODEL_VISIBILITY_NS } from './namespace.ts'
 
 export const name = 'dsh-model-visibility'
-export const inject = ['llm'] as const
+export const inject = ['llm', 'settings'] as const
 
-/** The settings namespace both halves address (the card keys on it too). */
-export const MODEL_VISIBILITY_NS = settingsNamespace('model-visibility')
+export { MODEL_VISIBILITY_NS }
 
 /** One hidden model: the provider/model route pair plus a display-name snapshot. */
 export interface HiddenModel {
@@ -42,14 +44,12 @@ export const Config: z<Config> = z.object({
 })
 
 export function apply(ctx: Context, config: Config): void {
-  let source: () => Config = () => config
-
-  installSettingsSection(ctx, MODEL_VISIBILITY_NS, Config, config, {
-    setSource: (current) => { source = current },
-    // The filter below reads `source()` live on every listModels call,
-    // so a committed change needs no rebuild here.
-    onChange: () => {},
-  })
+  // 0.1.5 replaced the `installSettingsSection` helper with the provider's own
+  // `register`: the entry config is the composition base, the returned scope
+  // reads the resolved (base → user document) value and is disposed with this
+  // fiber. The filter below reads `scope.get()` live on every listModels call,
+  // so a committed change needs no rebuild here.
+  const scope = ctx.settings.register(MODEL_VISIBILITY_NS, Config, { base: config })
 
   // Wrap the runtime's catalog read. An own-property assignment on the
   // service instance shadows the prototype method for every consumer
@@ -62,7 +62,7 @@ export function apply(ctx: Context, config: Config): void {
       value: async (provider: string) => {
         const models = await original(provider)
         const hidden = new Set(
-          source().hidden
+          scope.get().hidden
             .filter(entry => entry.provider === provider)
             .map(entry => entry.model),
         )
