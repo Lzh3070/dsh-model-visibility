@@ -19,7 +19,7 @@
 
 ## 要求
 
-- **DeepSeek Harness ≥ 0.1.5-rc.1**（0.1.5 重构了客户端模块体系，旧版本请使用 0.1.1）
+- **DeepSeek Harness ≥ 0.2.0-rc.1**（0.2.0 以 volatile 配置与 `configForms` 重构了设置体系；0.1.x 宿主请使用本插件 0.1.2）
 - Node.js 22+（构建与运行）
 
 ## 安装
@@ -32,8 +32,8 @@ dsh plugin --profile web add dsh-model-visibility
 
 ## 工作原理
 
-- **宿主半**（`lib/index.js`）：通过 `ctx.settings.register` 持有 `model-visibility` 设置段（隐藏列表），并在源头包装 `ctx.llm.listModels`——会话选择器与设置页拿到的目录都是过滤后的。目录成员资格在 harness 中是"建议性"的，因此隐藏一个正在使用的模型不影响其调度。
-- **浏览器半**（`lib/client.js`）：向设置壳注册一个 `settings.section` 分区页；目录经 0.1.5 的 `ctx.remote.session.modelCatalog()` 读取，页面状态来自"过滤后目录 ∪ 隐藏条目"的并集，隐藏条目携带隐藏时抓取的显示名快照。
+- **宿主半**（`lib/index.js`）：`hidden` 字段声明为 `.volatile()`，设置表单写入时由 Loader 把新值原地提交进同一稳定引用（插件不重启），并在源头包装 `ctx.llm.listModels`——会话选择器与设置页拿到的目录都是过滤后的。目录成员资格在 harness 中是"建议性"的，因此隐藏一个正在使用的模型不影响其调度。
+- **浏览器半**（`lib/client.js`）：向设置壳注册一个 `settings.section` 分区页；持久状态经 0.2.0 的 `ctx.configForms` 共享表单读写，目录经 `ctx.remote.session.modelCatalog()` 读取并跟随 `llm/adapters-updated` 失效刷新；页面状态来自"过滤后目录 ∪ 隐藏条目"的并集，隐藏条目携带隐藏时抓取的显示名快照。
 
 ## 卸载
 

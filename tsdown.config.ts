@@ -11,10 +11,11 @@ import type { UserConfig } from 'tsdown'
 const ID = 'dsh-model-visibility'
 
 /**
- * Mirror of the 0.1.5 client platform seed table (the `staticModules` map the
- * web shell hands to the module system). 0.1.5 removed `dsh-client-runtime` and
- * the old ui-* seeds; requesting a specifier outside this table aborts the
- * whole plugin tree.
+ * Mirror of the 0.2.0 client platform seed table (the `staticModules` map the
+ * web shell hands to the module system). Only specifiers actually require()d
+ * by the bundle matter (react, react/jsx-runtime and dsh-client-store here);
+ * requesting a specifier outside the table aborts the whole plugin tree, so
+ * every other dsh package stays a type-only import and gets inlined/erased.
  */
 const CLIENT_EXTERNALS = [
   'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client',

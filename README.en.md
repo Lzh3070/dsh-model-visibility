@@ -19,7 +19,7 @@ Installs a dedicated **Model visibility** settings section (right after 模型 /
 
 ## Requirements
 
-- **DeepSeek Harness ≥ 0.1.5-rc.1** (0.1.5 rebuilt the client module system; use 0.1.1 on older releases)
+- **DeepSeek Harness ≥ 0.2.0-rc.1** (0.2.0 rebuilt settings on volatile configuration and `configForms`; use plugin 0.1.2 on 0.1.x hosts)
 - Node.js 22+
 
 ## Install
@@ -32,8 +32,8 @@ Restart `dsh web` to activate.
 
 ## How it works
 
-- **Host half** (`lib/index.js`): owns the `model-visibility` settings section through `ctx.settings.register` (the hidden list) and wraps `ctx.llm.listModels` at its source, so both the conversation selector and the settings page receive the filtered catalog. Catalog membership is advisory in the harness, so hiding a model a session already uses never breaks that session's dispatch.
-- **Browser half** (`lib/client.js`): registers a `settings.section` page; the catalog arrives through 0.1.5's `ctx.remote.session.modelCatalog()`, and page state is the union of the filtered catalog and the hidden entries, each hidden entry labeled by the display-name snapshot captured when it was hidden.
+- **Host half** (`lib/index.js`): declares the `hidden` field `.volatile()`, so a settings-form write commits the new value into the same stable reference through the Loader (no plugin restart), and wraps `ctx.llm.listModels` at its source — both the conversation selector and the settings page receive the filtered catalog. Catalog membership is advisory in the harness, so hiding a model a session already uses never breaks that session's dispatch.
+- **Browser half** (`lib/client.js`): registers a `settings.section` page; durable state rides 0.2.0's shared `ctx.configForms` form, the catalog arrives through `ctx.remote.session.modelCatalog()` and refreshes on `llm/adapters-updated`, and page state is the union of the filtered catalog and the hidden entries, each hidden entry labeled by the display-name snapshot captured when it was hidden.
 
 ## Uninstall
 
