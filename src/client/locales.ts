@@ -12,6 +12,7 @@ export type ModelVisibilityLocaleKey =
   | 'loading'
   | 'loadFailed'
   | 'retry'
+  | 'unavailable'
   | 'empty'
   | 'allHiddenWarning'
   | 'readOnly'
@@ -39,6 +40,7 @@ export const zh: Record<ModelVisibilityLocaleKey, string> = {
   loading: '正在读取模型目录…',
   loadFailed: '模型目录读取失败：{message}',
   retry: '重试',
+  unavailable: '此连接不共享宿主设置，模型可见性不可用。',
   empty: '没有任何 Provider 提供模型。',
   allHiddenWarning: '所有模型都已隐藏，模型选择菜单将是空的。',
   readOnly: '设置文档不可写，开关已禁用。',
@@ -58,6 +60,7 @@ export const en: Record<ModelVisibilityLocaleKey, string> = {
   loading: 'Loading the model catalog…',
   loadFailed: 'Failed to load the model catalog: {message}',
   retry: 'Retry',
+  unavailable: 'Model visibility is unavailable: this connection does not share the Host settings.',
   empty: 'No provider advertises any model.',
   allHiddenWarning: 'Every model is hidden; the model selector will be empty.',
   readOnly: 'The settings document is read-only; toggles are disabled.',

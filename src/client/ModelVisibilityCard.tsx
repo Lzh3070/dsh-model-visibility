@@ -157,6 +157,7 @@ export function ModelVisibilityCard(props: ModelVisibilityCardProps) {
         </div>
       )}
 
+      {state.phase === 'unavailable' && <div className="mvw-note">{t('unavailable')}</div>}
       {state.phase === 'ready' && !state.writable && <div className="mvw-note">{t('readOnly')}</div>}
       {state.phase === 'ready' && state.groups.length === 0 && <div className="mvw-note">{t('empty')}</div>}
       {state.phase === 'ready' && state.total > 0 && state.visible === 0 && (

@@ -1,7 +1,7 @@
 /**
  * The model-visibility card's controller: React-free state over two sources —
  * the (already filtered) Host model catalog and the `model-visibility`
- * settings scope. The rendered list is their union: catalog rows are visible
+ * settings form. The rendered list is their union: catalog rows are visible
  * models; hidden entries restate the models the filter removed, labeled by
  * the name snapshot each entry carries. Beyond the reference shape, the
  * controller exposes provider-level batch writes and a whole-list write so
@@ -9,8 +9,10 @@
  */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { Config, HiddenModel } from '../index.ts'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client'
+import type { HiddenModel } from '../index.ts'
+import type { VisibilitySection } from '../namespace.ts'
 
 /** One toggle row. */
 export interface ModelRow {
@@ -28,7 +30,7 @@ export interface ProviderGroupRow {
 
 /** What the card renders. */
 export interface ModelVisibilityState {
-  phase: 'loading' | 'ready' | 'error'
+  phase: 'loading' | 'ready' | 'error' | 'unavailable'
   error?: string
   /** Whether the Host settings document accepts writes. */
   writable: boolean
@@ -38,32 +40,9 @@ export interface ModelVisibilityState {
   visible: number
 }
 
-/**
- * One catalog group as the Host's `remote.session.modelCatalog()` advertises
- * it. The 0.1.5 published Remote types mangle the catalog interface name away,
- * so this plugin restates the wire shape it actually consumes.
- */
-export interface CatalogModelGroup {
-  id: string
-  name: string
-  models: readonly { id: string; name: string }[]
-}
-
-/** Host model catalog outcome carried by the Remote result envelope. */
-export type ModelCatalogOutcome =
-  | { ok: true; value: { groups: readonly CatalogModelGroup[] } }
-  | { ok: false; error: { code: string; message: string } }
-
-/** The assembled Client Remote face this plugin consumes. */
-export interface ModelCatalogRemote {
-  session: {
-    modelCatalog(): Promise<ModelCatalogOutcome>
-  }
-}
-
 /** Injected catalog reader: decouples the controller from the Remote wire shape. */
 export interface ModelCatalogReader {
-  read(): Promise<readonly CatalogModelGroup[]>
+  read(): Promise<readonly ModelProviderGroup[]>
 }
 
 /** The face the slot registration injects into the card component. */
@@ -87,15 +66,16 @@ const EMPTY: ModelVisibilityState = { phase: 'loading', writable: false, groups:
 export class ModelVisibilityCardController {
   /** Exposed: the section contribution passes the store through its face as `hooks.snapshot`. */
   readonly store = createSnapshotStore<ModelVisibilityState>(EMPTY)
-  private catalog: CatalogModelGroup[] | undefined
+  private catalog: ModelProviderGroup[] | undefined
   private loadError: string | undefined
   private generation = 0
+  private readonly unsubscribe: () => void
 
   constructor(
-    private readonly scope: SettingsScope<Config>,
+    private readonly form: ConfigForm<VisibilitySection>,
     private readonly catalogReader: ModelCatalogReader,
   ) {
-    scope.subscribe(() => { this.recompute() })
+    this.unsubscribe = form.subscribe(() => { this.recompute() })
     void this.load()
   }
 
@@ -130,6 +110,11 @@ export class ModelVisibilityCardController {
     this.recompute()
   }
 
+  /** Stop following the settings form (plugin unload). */
+  dispose(): void {
+    this.unsubscribe()
+  }
+
   /** Compute the next hidden list from the current one plus one model's flip. */
   private nextHidden(current: HiddenModel[], provider: string, model: string, name: string, hidden: boolean): HiddenModel[] {
     const rest = current.filter(entry => !(entry.provider === provider && entry.model === model))
@@ -139,17 +124,17 @@ export class ModelVisibilityCardController {
   /** Write the next hidden list, then re-pull the catalog the filter changed. */
   private async write(next: HiddenModel[]): Promise<void> {
     try {
-      await this.scope.set('hidden', next)
+      await this.form.set('hidden', next)
     } catch {
-      // The scope already reloads Host state after a failed latest write;
-      // recompute below re-renders whatever the Host now reports.
+      // A rejected latest write makes the form reload Host state; the
+      // recompute below re-renders whatever the mirror now reports.
     }
     await this.load()
   }
 
   /** Flip one model's visibility (public API — the section card calls it directly). */
   async toggle(provider: string, model: string, name: string, hidden: boolean): Promise<void> {
-    const current = this.scope.getSnapshot().value?.hidden ?? []
+    const current = this.form.getSnapshot().value?.hidden ?? []
     await this.write(this.nextHidden(current, provider, model, name, hidden))
   }
 
@@ -160,7 +145,7 @@ export class ModelVisibilityCardController {
    */
   /** Batch flip for one provider (public API). */
   async toggleProvider(provider: string, hidden: boolean): Promise<void> {
-    const current = this.scope.getSnapshot().value?.hidden ?? []
+    const current = this.form.getSnapshot().value?.hidden ?? []
     const providerRows = this.stateRows().find(group => group.id === provider)
     const ids = new Set<string>([
       ...providerRows ? providerRows.models.map(model => model.id) : [],
@@ -182,7 +167,7 @@ export class ModelVisibilityCardController {
 
   /** Current union rows (catalog ∪ hidden) without touching the store. */
   private stateRows(): ProviderGroupRow[] {
-    const snapshot = this.scope.getSnapshot()
+    const snapshot = this.form.getSnapshot()
     const hidden = snapshot.value?.hidden ?? []
     if (this.catalog === undefined) return []
     const hiddenKeys = new Set(hidden.map(entry => `${entry.provider}\u0000${entry.model}`))
@@ -213,7 +198,13 @@ export class ModelVisibilityCardController {
 
   /** Union the filtered catalog with the hidden entries into render rows. */
   private recompute(): void {
-    const snapshot = this.scope.getSnapshot()
+    const snapshot = this.form.getSnapshot()
+    if (snapshot.status === 'unavailable') {
+      // The namespace left the describe mirror (Host half unloading), or this
+      // connection keeps settings process-local (memory mode never answers).
+      this.store.set({ ...EMPTY, phase: 'unavailable', writable: snapshot.writable })
+      return
+    }
     if (this.catalog === undefined && this.loadError !== undefined) {
       this.store.set({ ...EMPTY, phase: 'error', error: this.loadError, writable: snapshot.writable })
       return
