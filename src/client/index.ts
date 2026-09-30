@@ -25,6 +25,7 @@ import { MODEL_VISIBILITY_NS, type VisibilitySection } from '../namespace.ts'
 import { ModelVisibilityCardController, type ModelCatalogReader } from './controller.ts'
 import { ModelVisibilityCard } from './ModelVisibilityCard.tsx'
 import { LOCALE_NS, en, zh } from './locales.ts'
+import { installSettingsNavIcon } from './settings-nav-icon.ts'
 
 export const name = 'dsh-model-visibility'
 // `remote.session` carries the Host model catalog; `configForms` is the
@@ -69,6 +70,13 @@ export function apply(ctx: Context): void {
   // The section card consumes the locale seat through the inject face
   // (mirroring the official Models page, whose face carries `t`).
   const t = ctx.locale.bind(LOCALE_NS)
+
+  // The section's nav glyph. The shell picks nav icons from its own built-in
+  // list of section ids and falls back to the settings gear, and a
+  // `settings.section` registration has no icon to pass — so the card claims
+  // its own row and swaps the gear for an eye. Same label thunk as the
+  // registration below, so the row is re-claimed when the locale changes.
+  installSettingsNavIcon(ctx, () => t('nav'))
 
   // Register as a top-level settings SECTION (nav entry 「模型可见性」, ordered
   // right after the official 模型 page at order=10) instead of a tab inside

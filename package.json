@@ -1,6 +1,6 @@
 {
   "name": "dsh-model-visibility",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DeepSeek Harness plugin: control which models appear in the model selector — per-model switches, provider-level batch toggles, and search. Hiding a model never touches your provider config or running sessions.",
   "type": "module",
   "main": "lib/index.js",
